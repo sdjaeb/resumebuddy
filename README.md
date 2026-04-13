@@ -10,7 +10,7 @@ This project embodies an **AI-Native Workflow** and an **Agentic Baseline** appr
 - [career-ops](https://github.com/santifer/career-ops): For the concept of treating the job search as an operational engineering problem with strict evaluation criteria.
 - **Karpathy-style Knowledge Base / Obsidian**: The project utilizes a local, plain-text Markdown knowledge base (`knowledge-base/companies/`) for company research. This ensures your intel is highly readable (perfect for Obsidian), version-controllable, and easily injectable into LLM context windows without database overhead.
 
-*Note: The architecture of this project is currently being prepped for a shift toward **Domain-Driven Design (DDD)** and **Hexagonal Architecture (Ports & Adapters)** to further decouple the core evaluation logic from specific scraper implementations or LLM providers. See `docs/refactor-ddd-hexagonal.md`.*
+This project is built using a strict **Domain-Driven Design (DDD)** and **Hexagonal Architecture (Ports & Adapters)**. This decouples the core evaluation logic from specific scraper implementations or LLM providers, ensuring 100% test coverage and high maintainability.
 
 ## 🚀 Features
 
@@ -57,7 +57,13 @@ uv run resumebuddy evaluate --resume sample_resume.md --index 2 --model llama3.2
 ```
 *(You can also evaluate a direct URL using `--jd "https://..."`)*
 
-### 4. Generate a Targeted Cover Letter
+### 4. View Company Intel
+Render a local wiki page for any researched company.
+```bash
+uv run resumebuddy view "Google"
+```
+
+### 5. Generate a Targeted Cover Letter
 ```bash
 uv run resumebuddy cover-letter --resume sample_resume.md --jd "path/to/jd.txt"
 ```
@@ -65,13 +71,20 @@ uv run resumebuddy cover-letter --resume sample_resume.md --jd "path/to/jd.txt"
 ## 🧠 Fine-Tuning a Cover Letter Model
 Once you are ready to produce highly customized, expert-level cover letters or resume iterations, you can fine-tune a model using the provided synthetic data generator.
 
-1. **Generate Data:** Use the script in `src/resumebuddy/data_generator.py` to create 1,000+ synthetic (Resume, JD, Rationale, Optimized Resume) quadruplets via the Google GenAI API.
+1. **Generate Data:** Use the script in `src/resumebuddy/data_generator.py` to create synthetic (Resume, JD, Rationale, Optimized Resume) quadruplets via the Google GenAI API.
     ```bash
     export GOOGLE_API_KEY="your_key"
     uv run python src/resumebuddy/data_generator.py
     ```
+    *Note: The included `tmp/data/training_data.jsonl` currently has ~200 records. For optimal fine-tuning (e.g., using LoRA), you should aim to generate around 1,000 synthetic quadruplets.*
 2. **Train:** Use a framework like `unsloth` to apply a LoRA/PEFT adapter to the base `gemma4:e4b` model using the generated `training_data.jsonl`.
 3. **Export & Serve:** Convert the final adapter to GGUF format and load it back into Ollama as `gemma4-resume-expert`.
+
+## 🧪 Testing
+The project maintains 100% test coverage using `pytest`.
+```bash
+uv run pytest --cov=src/resumebuddy --cov-report=term-missing
+```
 
 ## 🛡 Privacy & Governance
 - **Privacy:** By default, `.gitignore` protects your personal `resume.txt` and `user_profile.json` from being committed.

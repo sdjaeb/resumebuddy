@@ -12,10 +12,14 @@ dependencies = [
     "pyyaml",
     "beautifulsoup4",
     "google-genai",
+    "pytest>=9.0.3",
+    "pytest-asyncio>=1.3.0",
+    "pytest-cov>=7.1.0",
+    "respx>=0.23.1",
 ]
 
 [project.scripts]
-resumebuddy = "resumebuddy.main:app"
+resumebuddy = "resumebuddy.infrastructure.cli.main:app"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/resumebuddy"]

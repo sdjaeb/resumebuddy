@@ -2,18 +2,13 @@ import httpx
 from bs4 import BeautifulSoup
 from typing import Dict, Any, Optional
 from urllib.parse import urlparse
+from resumebuddy.ports.scraper import IJobScraper
 
-class JobScraper:
-    """
-    Scraper for job descriptions from Greenhouse, Lever, Ashby, etc.
-    """
+class BeautifulSoupScraperAdapter(IJobScraper):
     def __init__(self, user_agent: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"):
         self.headers = {"User-Agent": user_agent}
 
     async def scrape_job(self, url: str) -> Dict[str, Any]:
-        """
-        Determines the job board and scrapes the content and metadata.
-        """
         async with httpx.AsyncClient(headers=self.headers, timeout=20.0, follow_redirects=True) as client:
             response = await client.get(url)
             response.raise_for_status()
@@ -30,7 +25,6 @@ class JobScraper:
             elif "myworkdayjobs.com" in domain:
                 return await self._scrape_workday(url, client)
             else:
-                # Generic fallback
                 return {
                     "title": soup.title.string if soup.title else "Unknown Title",
                     "description": soup.get_text(separator='\n', strip=True),
@@ -45,7 +39,7 @@ class JobScraper:
         return {
             "title": title.get_text(strip=True) if title else "Greenhouse Role",
             "description": content.get_text(separator='\n', strip=True) if content else soup.get_text(),
-            "posted_at": "Check Metadata", # Greenhouse often requires API or script-tag parsing for date
+            "posted_at": "Check Metadata",
             "is_repost": False,
             "url": url
         }
@@ -62,7 +56,6 @@ class JobScraper:
         }
 
     def _scrape_ashby(self, soup: BeautifulSoup, url: str) -> Dict[str, Any]:
-        # Ashby often renders via JS, might need a more robust approach in production
         return {
             "title": soup.title.string if soup.title else "Ashby Role",
             "description": soup.get_text(separator='\n', strip=True),
@@ -72,19 +65,11 @@ class JobScraper:
         }
 
     async def _scrape_workday(self, url: str, client: httpx.AsyncClient) -> Dict[str, Any]:
-        """
-        Scrapes a Workday job by calling its internal API.
-        Handles patterns like:
-        - https://nvidia.wd5.myworkdayjobs.com/NVIDIAExternalCareerSite/job/Location/Title_ID
-        - https://nvidia.wd5.myworkdayjobs.com/en-US/NVIDIAExternalCareerSite/job/Location/Title_ID
-        """
         parsed_url = urlparse(url)
         path_parts = parsed_url.path.strip('/').split('/')
-        
-        if not path_parts:
+        if not path_parts or path_parts == ['']:
             return {"title": "Workday Role", "description": "Failed to parse Workday URL", "url": url}
 
-        # Check for locale segment (e.g., 'en-US') and skip it
         if len(path_parts[0]) == 5 and '-' in path_parts[0]:
             path_parts = path_parts[1:]
         
@@ -93,12 +78,10 @@ class JobScraper:
         
         tenant = parsed_url.netloc.split('.')[0]
         site = path_parts[0]
-        # Reconstruct the job path after '/job/'
         try:
             job_index = path_parts.index('job')
             job_path = '/'.join(path_parts[job_index:])
         except ValueError:
-            # Fallback to old behavior if 'job' segment isn't found
             job_path = '/'.join(path_parts[1:])
         
         api_url = f"https://{parsed_url.netloc}/wday/cxs/{tenant}/{site}/{job_path}"
@@ -111,16 +94,11 @@ class JobScraper:
 
         try:
             full_data = resp.json()
-            data = full_data.get('jobPostingInfo', {})
-            # Some versions might use 'jobPosting'
-            if not data:
-                data = full_data.get('jobPosting', {})
+            data = full_data.get('jobPostingInfo', {}) or full_data.get('jobPosting', {})
         except Exception as e:
             return {"title": "Workday Role", "description": f"Failed to parse Workday JSON: {e}", "url": url}
 
         description = data.get('jobDescription', '')
-
-        # Workday descriptions are often HTML
         soup = BeautifulSoup(description, 'html.parser')
         clean_description = soup.get_text(separator='\n', strip=True)
         

@@ -1,6 +1,7 @@
 import httpx
 from pydantic import BaseModel
 from typing import List, Optional, Dict, Any
+from resumebuddy.ports.llm import ILLMClient
 
 class OllamaResponse(BaseModel):
     model: str
@@ -12,7 +13,7 @@ class OllamaResponse(BaseModel):
     prompt_eval_count: Optional[int] = None
     eval_count: Optional[int] = None
 
-class OllamaClient:
+class OllamaAdapter(ILLMClient):
     def __init__(self, base_url: str = "http://localhost:11434", model: str = "gemma4:e4b"):
         self.base_url = base_url
         self.model = model
@@ -24,11 +25,10 @@ class OllamaClient:
             "messages": messages,
             "stream": stream,
             "options": {
-                "temperature": 0.2, # Low temperature for consistency
+                "temperature": 0.2,
             }
         }
 
-        # Increased timeout to 300s for large reasoning tasks
         async with httpx.AsyncClient(timeout=300.0) as client:
             response = await client.post(url, json=payload)
             response.raise_for_status()
