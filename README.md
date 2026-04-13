@@ -71,13 +71,13 @@ uv run resumebuddy cover-letter --resume sample_resume.md --jd "path/to/jd.txt"
 ## 🧠 Fine-Tuning a Cover Letter Model
 Once you are ready to produce highly customized, expert-level cover letters or resume iterations, you can fine-tune a model using the provided synthetic data generator.
 
-1. **Generate Data:** Use the script in `src/resumebuddy/data_generator.py` to create synthetic (Resume, JD, Rationale, Optimized Resume) quadruplets via the Google GenAI API.
+1. **Generate Data:** Use the script in `src/resumebuddy/infrastructure/adapters/data_generator.py` to create synthetic (Resume, JD, Rationale, Optimized Resume) quadruplets via the Google GenAI API.
     ```bash
     export GOOGLE_API_KEY="your_key"
-    uv run python src/resumebuddy/data_generator.py
+    uv run python src/resumebuddy/infrastructure/adapters/data_generator.py 100
     ```
-    *Note: The included `tmp/data/training_data.jsonl` currently has ~200 records. For optimal fine-tuning (e.g., using LoRA), you should aim to generate around 1,000 synthetic quadruplets.*
-2. **Train:** Use a framework like `unsloth` to apply a LoRA/PEFT adapter to the base `gemma4:e4b` model using the generated `training_data.jsonl`.
+    *Note: The script outputs to `tmp/data/training_data.jsonl` by default. For optimal fine-tuning (e.g., using LoRA), you should aim to generate around 1,000 synthetic quadruplets.*
+2. **Train:** Use a framework like `unsloth` to apply a LoRA/PEFT adapter to the base `gemma4:e4b` model using your generated data.
 3. **Export & Serve:** Convert the final adapter to GGUF format and load it back into Ollama as `gemma4-resume-expert`.
 
 ## 🧪 Testing
