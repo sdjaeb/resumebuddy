@@ -78,29 +78,96 @@ Ensure the "output" follows a professional, senior career consultant tone.
 
     async def run(self, count: int = 1000, output_file: str = "tmp/data/training_data.jsonl"):
         """
-        Loops through industries and saves to JSONL incrementally.
+        Loops through industries and saves to JSONL incrementally with enhanced progress tracking.
         """
-        print(f"Starting generation of {count} examples using {self.model_id}...")
+        import time
+        from rich.console import Console
+        from rich.progress import (
+            Progress,
+            TextColumn,
+            BarColumn,
+            TaskProgressColumn,
+            MofNCompleteColumn,
+            TimeElapsedColumn,
+            TimeRemainingColumn,
+        )
+
+        console = Console()
+        console.print(f"[bold blue]🚀 Starting generation of {count} examples using {self.model_id}...[/bold blue]")
+        console.print("[yellow]Press Ctrl+C to stop (Graceful exit after current item, or double-tap to kill).[/yellow]\n")
+        
         os.makedirs(os.path.dirname(output_file), exist_ok=True)
         
-        with open(output_file, "a") as f:
-            with Progress() as progress:
-                task = progress.add_task("[cyan]Generating data...", total=count)
+        # Statistics tracking
+        start_time = time.time()
+        success_count = 0
+        failure_count = 0
+        durations = []
+        stop_requested = False
+
+        progress = Progress(
+            TextColumn("[progress.description]{task.description}"),
+            BarColumn(),
+            TaskProgressColumn(),
+            MofNCompleteColumn(),
+            TextColumn("•"),
+            TimeElapsedColumn(),
+            TextColumn("•"),
+            TimeRemainingColumn(),
+            TextColumn("{task.fields[status]}"),
+            console=console,
+        )
+
+        with progress:
+            task = progress.add_task("[cyan]Generating Data", total=count, status="")
+            
+            for i in range(count):
+                if stop_requested:
+                    break
+
+                industry = SEED_INDUSTRIES[i % len(SEED_INDUSTRIES)]
+                item_start = time.time()
                 
-                for i in range(count):
-                    industry = SEED_INDUSTRIES[i % len(SEED_INDUSTRIES)]
+                try:
+                    progress.update(task, status=f"[bold blue](Current: {industry})[/bold blue]")
                     data = await asyncio.to_thread(self.generate_quadruplet, industry)
+                    item_duration = time.time() - item_start
                     
                     if "error" not in data:
-                        f.write(json.dumps(data) + "\n")
-                        f.flush()
+                        with open(output_file, "a") as f:
+                            f.write(json.dumps(data) + "\n")
+                            f.flush()
+                        success_count += 1
+                        durations.append(item_duration)
+                        progress.update(task, advance=1, status=f"[green]Last: {item_duration:.1f}s[/green]")
                     else:
-                        print(f"\nError during generation: {data['error']}")
-                        if "429" in str(data['error']):
+                        error_msg = str(data['error'])
+                        failure_count += 1
+                        if "429" in error_msg:
+                            progress.update(task, status="[bold red]⚠️ Rate Limit Hit! Waiting 60s...[/bold red]")
                             await asyncio.sleep(60)
-                    
-                    progress.update(task, advance=1)
-                    await asyncio.sleep(2) # Moderate delay for Gemini Pro API limits
+                        else:
+                            progress.update(task, status=f"[red]❌ Error: {error_msg[:30]}...[/red]")
+                            await asyncio.sleep(2)
+                
+                except KeyboardInterrupt:
+                    progress.update(task, status="[bold yellow]🛑 Stopping after current item...[/bold yellow]")
+                    stop_requested = True
+                except Exception as e:
+                    failure_count += 1
+                    progress.update(task, status=f"[red]💥 Unexpected Error: {str(e)[:30]}...[/red]")
+                    await asyncio.sleep(2)
+
+        # Final Summary
+        total_duration = time.time() - start_time
+        avg_duration = sum(durations) / len(durations) if durations else 0
+        
+        console.print("\n[bold green]🏁 Generation Session Complete![/bold green]")
+        console.print(f"• [bold]Total Time:[/bold] {total_duration/60:.1f} minutes")
+        console.print(f"• [bold]Items Generated:[/bold] {success_count} / {count}")
+        console.print(f"• [bold]Average Time per Item:[/bold] {avg_duration:.1f} seconds")
+        console.print(f"• [bold]Failures Encountered:[/bold] {failure_count}")
+        console.print(f"• [bold]Output File:[/bold] {output_file}\n")
 
 if __name__ == "__main__":
     import sys
