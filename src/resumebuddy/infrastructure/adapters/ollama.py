@@ -1,6 +1,6 @@
 import httpx
 from pydantic import BaseModel
-from typing import List, Optional, Dict, Any
+from typing import List, Optional, Dict
 from resumebuddy.ports.llm import ILLMClient
 
 class OllamaResponse(BaseModel):

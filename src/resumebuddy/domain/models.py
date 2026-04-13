@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List, Optional
+from typing import List
 
 class UserProfile(BaseModel):
     preferred_languages: List[str] = Field(default_factory=lambda: ["Python", "Node", "Ruby", "C#"])

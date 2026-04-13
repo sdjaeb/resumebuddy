@@ -2,9 +2,20 @@ import os
 import json
 import asyncio
 import re
+import time
+import sys
 from google import genai
-from typing import List, Dict, Any
-from rich.progress import Progress
+from typing import Dict, Any
+from rich.console import Console
+from rich.progress import (
+    Progress,
+    TextColumn,
+    BarColumn,
+    TaskProgressColumn,
+    MofNCompleteColumn,
+    TimeElapsedColumn,
+    TimeRemainingColumn,
+)
 
 # Config: 20 Industries/Roles to ensure diversity
 SEED_INDUSTRIES = [
@@ -42,7 +53,7 @@ class FineTuneDataGenerator:
                 try:
                     cleaned = re.sub(r'(?<=[:\[,])\s*\n\s*(?=[{\["])', '', json_str)
                     return json.loads(cleaned)
-                except:
+                except Exception:
                     return {"error": "Failed to parse JSON even after cleaning."}
         return {"error": "No JSON block found in response."}
 
@@ -80,18 +91,6 @@ Ensure the "output" follows a professional, senior career consultant tone.
         """
         Loops through industries and saves to JSONL incrementally with enhanced progress tracking.
         """
-        import time
-        from rich.console import Console
-        from rich.progress import (
-            Progress,
-            TextColumn,
-            BarColumn,
-            TaskProgressColumn,
-            MofNCompleteColumn,
-            TimeElapsedColumn,
-            TimeRemainingColumn,
-        )
-
         console = Console()
         console.print(f"[bold blue]🚀 Starting generation of {count} examples using {self.model_id}...[/bold blue]")
         console.print("[yellow]Press Ctrl+C to stop (Graceful exit after current item, or double-tap to kill).[/yellow]\n")
@@ -105,7 +104,7 @@ Ensure the "output" follows a professional, senior career consultant tone.
         durations = []
         stop_requested = False
 
-        progress = Progress(
+        pg = Progress(
             TextColumn("[progress.description]{task.description}"),
             BarColumn(),
             TaskProgressColumn(),
@@ -118,8 +117,8 @@ Ensure the "output" follows a professional, senior career consultant tone.
             console=console,
         )
 
-        with progress:
-            task = progress.add_task("[cyan]Generating Data", total=count, status="")
+        with pg:
+            task = pg.add_task("[cyan]Generating Data", total=count, status="")
             
             for i in range(count):
                 if stop_requested:
@@ -129,7 +128,7 @@ Ensure the "output" follows a professional, senior career consultant tone.
                 item_start = time.time()
                 
                 try:
-                    progress.update(task, status=f"[bold blue](Current: {industry})[/bold blue]")
+                    pg.update(task, status=f"[bold blue](Current: {industry})[/bold blue]")
                     data = await asyncio.to_thread(self.generate_quadruplet, industry)
                     item_duration = time.time() - item_start
                     
@@ -139,23 +138,23 @@ Ensure the "output" follows a professional, senior career consultant tone.
                             f.flush()
                         success_count += 1
                         durations.append(item_duration)
-                        progress.update(task, advance=1, status=f"[green]Last: {item_duration:.1f}s[/green]")
+                        pg.update(task, advance=1, status=f"[green]Last: {item_duration:.1f}s[/green]")
                     else:
                         error_msg = str(data['error'])
                         failure_count += 1
                         if "429" in error_msg:
-                            progress.update(task, status="[bold red]⚠️ Rate Limit Hit! Waiting 60s...[/bold red]")
+                            pg.update(task, status="[bold red]⚠️ Rate Limit Hit! Waiting 60s...[/bold red]")
                             await asyncio.sleep(60)
                         else:
-                            progress.update(task, status=f"[red]❌ Error: {error_msg[:30]}...[/red]")
+                            pg.update(task, status=f"[red]❌ Error: {error_msg[:30]}...[/red]")
                             await asyncio.sleep(2)
                 
                 except KeyboardInterrupt:
-                    progress.update(task, status="[bold yellow]🛑 Stopping after current item...[/bold yellow]")
+                    pg.update(task, status="[bold yellow]🛑 Stopping after current item...[/bold yellow]")
                     stop_requested = True
                 except Exception as e:
                     failure_count += 1
-                    progress.update(task, status=f"[red]💥 Unexpected Error: {str(e)[:30]}...[/red]")
+                    pg.update(task, status=f"[red]❌ Unexpected: {str(e)[:30]}...[/red]")
                     await asyncio.sleep(2)
 
         # Final Summary
@@ -169,19 +168,18 @@ Ensure the "output" follows a professional, senior career consultant tone.
         console.print(f"• [bold]Failures Encountered:[/bold] {failure_count}")
         console.print(f"• [bold]Output File:[/bold] {output_file}\n")
 
-if __name__ == "__main__":
-    import sys
+if __name__ == "__main__":  # pragma: no cover
     api_key = os.getenv("GOOGLE_API_KEY")
     if not api_key:
         print("Error: GOOGLE_API_KEY not found in environment.")
     else:
         # Default to 100, or take from command line
-        count = 100
+        gen_count = 100
         if len(sys.argv) > 1:
             try:
-                count = int(sys.argv[1])
+                gen_count = int(sys.argv[1])
             except ValueError:
                 print(f"Invalid count provided: {sys.argv[1]}. Using default of 100.")
         
-        generator = FineTuneDataGenerator(api_key)
-        asyncio.run(generator.run(count=count))
+        gen_instance = FineTuneDataGenerator(api_key)
+        asyncio.run(gen_instance.run(count=gen_count))

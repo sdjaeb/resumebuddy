@@ -1,6 +1,6 @@
 import httpx
 from bs4 import BeautifulSoup
-from typing import Dict, Any, Optional
+from typing import Dict, Any
 from urllib.parse import urlparse
 from resumebuddy.ports.scraper import IJobScraper
 

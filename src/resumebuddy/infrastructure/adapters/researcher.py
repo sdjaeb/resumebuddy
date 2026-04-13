@@ -25,7 +25,7 @@ IMPORTANT: Return ONLY a valid JSON object. No other text.
             data = json.loads(response.strip().strip("```json").strip("```"))
             self._save_to_kb(company_name, data)
             return data
-        except:
+        except Exception:
             return {"error": f"Failed to research {company_name}"}
 
     def _save_to_kb(self, company_name: str, data: Dict[str, Any]):
@@ -34,7 +34,8 @@ IMPORTANT: Return ONLY a valid JSON object. No other text.
         
         def format_section(val):
             if isinstance(val, list):
-                if not val: return "N/A"
+                if not val:
+                    return "N/A"
                 if isinstance(val[0], dict):
                     keys = val[0].keys()
                     header = "| " + " | ".join(keys) + " |"

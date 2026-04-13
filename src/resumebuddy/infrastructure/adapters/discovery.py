@@ -28,7 +28,8 @@ class JobDiscoveryAdapter(IJobDiscovery):
                 for link in links:
                     text = link.get_text().strip()
                     href = link.get('href')
-                    if not href: continue
+                    if not href:
+                        continue
                     
                     href = urljoin(url, href)
                     l_text = text.lower()
@@ -68,7 +69,8 @@ class JobDiscoveryAdapter(IJobDiscovery):
                 for job_data in data.get('jobPostings', []):
                     title = job_data.get('title', 'Unknown')
                     job_path = job_data.get('externalPath', '')
-                    if not job_path: continue
+                    if not job_path:
+                        continue
                     
                     full_url = f"https://{parsed_url.netloc}/{site}{job_path}"
                     l_title = title.lower()

@@ -1,11 +1,9 @@
 import asyncio
 import typer
 from rich import print
-from rich.table import Table
 from typing import Optional
 import os
 import json
-from urllib.parse import urlparse
 
 from resumebuddy.infrastructure.adapters.ollama import OllamaAdapter
 from resumebuddy.infrastructure.adapters.scraper import BeautifulSoupScraperAdapter
@@ -189,5 +187,5 @@ def cover_letter(
 
     asyncio.run(_run())
 
-if __name__ == "__main__":
+if __name__ == "__main__":  # pragma: no cover
     app()

@@ -16,7 +16,7 @@ JD:
         try:
             cleaned = response.strip().strip("```json").strip("```")
             return json.loads(cleaned)
-        except:
+        except Exception:
             return []
 
     async def evaluate_role(self, resume_text: str, jd_data: Dict[str, Any], company_intel: Optional[str] = None, model: Optional[str] = None, profile: Optional[UserProfile] = None) -> Dict[str, Any]:
@@ -42,7 +42,7 @@ Return a JSON object with: "overall_score" (A-F), "dimension_scores" (Dict of sc
         try:
             cleaned = response.strip().strip("```json").strip("```")
             return json.loads(cleaned)
-        except:
+        except Exception:
             return {"error": "Failed to parse A-F evaluation"}
 
     async def analyze_alignment(self, resume_text: str, jd_text: str) -> Dict[str, Any]:
@@ -59,7 +59,7 @@ JD:
         try:
             cleaned = response.strip().strip("```json").strip("```")
             return json.loads(cleaned)
-        except:
+        except Exception:
             return {"error": "Failed to parse alignment analysis"}
 
     async def generate_cover_letter(self, resume_text: str, jd_text: str, alignment: Dict[str, Any], model: Optional[str] = None) -> str:

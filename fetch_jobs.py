@@ -18,7 +18,8 @@ async def fetch(name, url, filters=None):
             for link in links:
                 text = link.get_text().strip()
                 href = link.get('href')
-                if not href: continue
+                if not href:
+                    continue
                 
                 href = urljoin(url, href)
                 l_text = text.lower()
