@@ -60,3 +60,4 @@ knowledge-base/companies/*
 
 # macOS
 .DS_Store
+.coverage
