@@ -1,0 +1,25 @@
+[project]
+name = "resumebuddy"
+version = "0.1.0"
+description = "A CLI application for resume review, tuning, and updating."
+authors = [{ name = "Gemini CLI Agent" }]
+requires-python = ">=3.13"
+dependencies = [
+    "typer",
+    "pydantic",
+    "httpx",
+    "rich",
+    "pyyaml",
+    "beautifulsoup4",
+    "google-genai",
+]
+
+[project.scripts]
+resumebuddy = "resumebuddy.main:app"
+
+[tool.hatch.build.targets.wheel]
+packages = ["src/resumebuddy"]
+
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"

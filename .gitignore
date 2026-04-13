@@ -1,0 +1,62 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+*.so
+.Python
+env/
+build/
+develop-eggs/
+dist/
+downloads/
+eggs/
+.eggs/
+lib/
+lib64/
+parts/
+sdist/
+var/
+*.egg-info/
+.installed.cfg
+*.egg
+
+# Virtual Environment
+.env
+.venv
+env/
+venv/
+ENV/
+env.bak/
+venv.bak/
+
+# Local Configuration
+.env.local
+.env.*.local
+user_profile.json
+
+# ResumeBuddy Specific Data (Private)
+prospective_jobs.jsonl
+*.jsonl
+*.txt
+*.csv
+
+# Temporary Files / Scratchpad
+tmp/
+.github/tasks/todo.md
+.github/tasks/lessons.md
+
+# Ignore knowledge base companies EXCEPT google.md as an example
+knowledge-base/companies/*
+!knowledge-base/companies/google.md
+
+# Logs
+*.log
+
+# IDE / Editor
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# macOS
+.DS_Store
