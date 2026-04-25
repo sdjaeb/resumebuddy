@@ -5,8 +5,29 @@ from typing import List, Dict, Any
 from resumebuddy.ports.discovery import IJobDiscovery
 
 class JobDiscoveryAdapter(IJobDiscovery):
-    def __init__(self, user_agent: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"):
+    def __init__(self, llm_client: Any = None, user_agent: str = "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/146.0.0.0 Safari/537.36"):
         self.headers = {"User-Agent": user_agent}
+        self.llm_client = llm_client
+
+    async def discover_agentic(self, query: str) -> List[Dict[str, Any]]:
+        """
+        Uses an LLM to perform web searches and find relevant job postings.
+        This allows access to dynamic boards like JobRight, LinkedIn, etc.
+        """
+        if not self.llm_client:
+            return []
+            
+        prompt = f"""Search the web for the following job query and return a list of JSON objects with keys: 
+"company", "title", "url", "source" (e.g. JobRight, LinkedIn).
+Query: {query}
+"""
+        response = await self.llm_client.complete_prompt(prompt)
+        try:
+            import json
+            cleaned = response.strip().strip("```json").strip("```")
+            return json.loads(cleaned)
+        except Exception:
+            return []
 
     async def discover_jobs(self, name: str, url: str) -> List[Dict[str, Any]]:
         domain = urlparse(url).netloc

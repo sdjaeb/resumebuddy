@@ -12,6 +12,9 @@ This project embodies an **AI-Native Workflow** and an **Agentic Baseline** appr
 
 This project is built using a strict **Domain-Driven Design (DDD)** and **Hexagonal Architecture (Ports & Adapters)**. This decouples the core evaluation logic from specific scraper implementations or LLM providers, ensuring 100% test coverage and high maintainability.
 
+- **Durable Task Decomposition:** Job evaluations are decomposed into discrete, observable phases (Discovery -> Research -> Analysis) to ensure architectural clarity and state isolation.
+- **Resilient Adapters:** Scraper implementations for Workday, Greenhouse, and Lever include localized retry logic and error handling to manage flaky external web interfaces.
+
 ## 🚀 Features
 
 - **Interactive Profile Builder:** Define your salary floors, language preferences, and target industries to drive personalized job evaluations.

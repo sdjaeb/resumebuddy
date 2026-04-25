@@ -1,5 +1,5 @@
 from pydantic import BaseModel, Field
-from typing import List
+from typing import List, Dict, Optional
 
 class UserProfile(BaseModel):
     preferred_languages: List[str] = Field(default_factory=lambda: ["Python", "Node", "Ruby", "C#"])
@@ -16,3 +16,19 @@ class UserProfile(BaseModel):
     clearance: str = Field(default="Candidate can obtain Secret or above clearance.")
     disqualified_companies: List[str] = Field(default_factory=lambda: ["Oracle", "Tesla", "SpaceX"])
     recent_applications: List[str] = Field(default_factory=lambda: ["Toast", "Future", "Yahoo", "Docker", "Atlassian"])
+
+class STARItem(BaseModel):
+    situation: str
+    task: str
+    action: str
+    result: str
+    alignment: str
+
+class InterviewPrep(BaseModel):
+    company: str
+    role: str
+    intro_statement: str
+    star_items: List[STARItem]
+    suggested_questions: List[str]
+    technical_refreshers: List[str]
+    salary_strategy: str

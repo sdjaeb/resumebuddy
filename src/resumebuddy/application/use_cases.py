@@ -91,3 +91,39 @@ Alignment Data:
 Return ONLY the optimized resume text.
 """
         return await self.llm_client.complete_prompt(prompt)
+
+    async def prepare_interview(self, resume_text: str, jd_text: str, company_intel: Optional[str] = None, model: Optional[str] = None) -> Dict[str, Any]:
+        prompt = f"""Generate a comprehensive interview preparation guide based on the candidate's resume, the job description, and company intel.
+        
+Resume:
+{resume_text}
+
+Job Description:
+{jd_text}
+
+Company Intel:
+{company_intel or "No additional intel available."}
+
+Return a JSON object matching this structure:
+{{
+  "intro_statement": "A tailored 'Tell me about yourself' narrative.",
+  "star_items": [
+    {{
+      "situation": "...",
+      "task": "...",
+      "action": "...",
+      "result": "...",
+      "alignment": "How this matches a specific JD requirement."
+    }}
+  ],
+  "suggested_questions": ["Question 1", "Question 2", "Question 3"],
+  "technical_refreshers": ["Concept 1", "Concept 2", "Concept 3"],
+  "salary_strategy": "A recommendation for salary negotiation based on the JD range and candidate seniority."
+}}
+"""
+        response = await self.llm_client.complete_prompt(prompt, model=model)
+        try:
+            cleaned = response.strip().strip("```json").strip("```")
+            return json.loads(cleaned)
+        except Exception:
+            return {"error": "Failed to parse interview prep guide"}

@@ -18,7 +18,7 @@ app = typer.Typer(help="ResumeBuddy: Review, Tune, and Update Resumes.")
 # Dependency Injection Setup
 llm_client = OllamaAdapter()
 scraper = BeautifulSoupScraperAdapter()
-discovery = JobDiscoveryAdapter()
+discovery = JobDiscoveryAdapter(llm_client=llm_client)
 researcher = ResearcherAdapter(llm_client)
 profile_repo = FileSystemProfileRepository()
 use_cases = ResumeBuddyUseCases(llm_client)
@@ -106,7 +106,10 @@ def research(
     asyncio.run(_run())
 
 @app.command()
-def fetch():
+def fetch(
+    agentic: bool = typer.Option(False, "--agentic", help="Use AI-powered search to find jobs on dynamic boards"),
+    query: Optional[str] = typer.Option(None, "--query", help="Query for agentic discovery (e.g. 'Staff Backend AI Remote')")
+):
     """Fetch new job listings and save to prospective_jobs.jsonl."""
     sites = [
         ("Kentik", "https://www.kentik.com/careers/"),
@@ -117,16 +120,27 @@ def fetch():
 
     async def _run():
         all_jobs = []
-        for name, url in sites:
-            print(f"[bold blue]Discovering jobs on {name}...[/bold blue]")
-            jobs = await discovery.discover_jobs(name, url)
-            print(f"  Found {len(jobs)} prospective roles.")
-            all_jobs.extend(jobs)
         
-        with open("prospective_jobs.jsonl", "a") as f:
-            for job in all_jobs:
-                f.write(json.dumps(job) + "\n")
-        print(f"\n[bold green]Saved {len(all_jobs)} jobs to prospective_jobs.jsonl[/bold green]")
+        if agentic:
+            search_query = query or "Staff Backend AI Engineer Remote US"
+            print(f"[bold blue]Performing agentic discovery for: '{search_query}'...[/bold blue]")
+            jobs = await discovery.discover_agentic(search_query)
+            print(f"  Found {len(jobs)} prospective roles via AI search.")
+            all_jobs.extend(jobs)
+        else:
+            for name, url in sites:
+                print(f"[bold blue]Discovering jobs on {name}...[/bold blue]")
+                jobs = await discovery.discover_jobs(name, url)
+                print(f"  Found {len(jobs)} prospective roles.")
+                all_jobs.extend(jobs)
+        
+        if all_jobs:
+            with open("prospective_jobs.jsonl", "a") as f:
+                for job in all_jobs:
+                    f.write(json.dumps(job) + "\n")
+            print(f"\n[bold green]Saved {len(all_jobs)} jobs to prospective_jobs.jsonl[/bold green]")
+        else:
+            print("[bold yellow]No new jobs found.[/bold yellow]")
 
     asyncio.run(_run())
 
@@ -184,6 +198,60 @@ def cover_letter(
         alignment = await use_cases.analyze_alignment(resume_text, jd_text)
         cv = await use_cases.generate_cover_letter(resume_text, jd_text, alignment, model=model)
         print(f"\n[bold magenta]Cover Letter:[/bold magenta]\n{cv}")
+
+    asyncio.run(_run())
+
+@app.command()
+def prep(
+    company: str = typer.Argument(..., help="Company name for the interview"),
+    resume_path: str = typer.Option(..., "--resume", help="Path to your resume"),
+    jd_source: Optional[str] = typer.Option(None, "--jd", help="Path to JD file or a URL"),
+    model: Optional[str] = typer.Option(None, "--model", help="Model name to override")
+):
+    """Generate a strategic interview preparation guide."""
+    async def _run():
+        print(f"[bold blue]Preparing for your interview with {company}...[/bold blue]")
+        resume_text = load_file(resume_path)
+        
+        jd_text = ""
+        if jd_source:
+            if jd_source.startswith("http"):
+                jd_data = await scraper.scrape_job(jd_source)
+                jd_text = jd_data.get('description', '')
+                # Save JD to knowledge base
+                kb_path = f"knowledge-base/companies/{company.lower().replace(' ', '_')}.md"
+                if not os.path.exists(kb_path):
+                    with open(kb_path, "w") as f:
+                        f.write(f"# Company Intel: {company}\n\n## Job Description\n{jd_text}\n")
+            else:
+                jd_text = load_file(jd_source)
+
+        company_intel = researcher.get_company_intel(company)
+        
+        prep_data = await use_cases.prepare_interview(resume_text, jd_text, company_intel, model=model)
+        
+        if "error" in prep_data:
+            print(f"[bold red]Error:[/bold red] {prep_data['error']}")
+            return
+
+        print(f"\n[bold green]Interview Strategy for {company}[/bold green]")
+        print(f"\n[bold cyan]Intro Statement:[/bold cyan]\n{prep_data.get('intro_statement')}")
+        
+        print(f"\n[bold cyan]STAR Items:[/bold cyan]")
+        for item in prep_data.get('star_items', []):
+            print(f"- [bold]{item.get('alignment')}[/bold]")
+            print(f"  S/T: {item.get('situation')} / {item.get('task')}")
+            print(f"  A/R: {item.get('action')} / {item.get('result')}")
+
+        print(f"\n[bold cyan]Suggested Questions:[/bold cyan]")
+        for q in prep_data.get('suggested_questions', []):
+            print(f"- {q}")
+
+        print(f"\n[bold cyan]Technical Refreshers:[/bold cyan]")
+        for t in prep_data.get('technical_refreshers', []):
+            print(f"- {t}")
+
+        print(f"\n[bold yellow]Salary Strategy:[/bold yellow]\n{prep_data.get('salary_strategy')}")
 
     asyncio.run(_run())
 
