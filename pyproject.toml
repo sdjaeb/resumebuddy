@@ -17,10 +17,17 @@ dependencies = [
     "pytest-cov>=7.1.0",
     "respx>=0.23.1",
     "ruff>=0.15.10",
+    "instructor>=1.15.1",
+    "python-docx>=1.2.0",
+    "fastapi>=0.136.1",
+    "uvicorn>=0.46.0",
+    "mlx-lm>=0.31.3",
+    "mcp>=1.27.0",
 ]
 
 [project.scripts]
 resumebuddy = "resumebuddy.infrastructure.cli.main:app"
+resumebuddy-mcp = "resumebuddy.infrastructure.cli.mcp_server:main"
 
 [tool.hatch.build.targets.wheel]
 packages = ["src/resumebuddy"]

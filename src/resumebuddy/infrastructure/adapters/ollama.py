@@ -1,7 +1,11 @@
 import httpx
+import instructor
 from pydantic import BaseModel
-from typing import List, Optional, Dict
+from typing import List, Optional, Dict, Type, TypeVar
 from resumebuddy.ports.llm import ILLMClient
+from openai import AsyncOpenAI
+
+T = TypeVar("T", bound=BaseModel)
 
 class OllamaResponse(BaseModel):
     model: str
@@ -38,3 +42,14 @@ class OllamaAdapter(ILLMClient):
     async def complete_prompt(self, prompt: str, model: Optional[str] = None) -> str:
         messages = [{"role": "user", "content": prompt}]
         return await self.generate_chat(messages, model=model)
+
+    async def complete_structured(self, prompt: str, response_model: Type[T], model: Optional[str] = None) -> T:
+        client = instructor.from_openai(
+            AsyncOpenAI(base_url=f"{self.base_url}/v1", api_key="ollama"),
+            mode=instructor.Mode.JSON
+        )
+        return await client.chat.completions.create(
+            model=model or self.model,
+            messages=[{"role": "user", "content": prompt}],
+            response_model=response_model,
+        )
