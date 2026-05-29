@@ -67,7 +67,6 @@ tmp/
 .github/tasks/todo.md
 .github/tasks/lessons.md
 STATE_SNAPSHOT.md
-scripts/generate_hannah_docx.py
 
 # Ignore knowledge base companies EXCEPT google.md as an example
 knowledge-base/companies/*
